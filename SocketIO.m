@@ -90,6 +90,7 @@ NSString* const SocketIOException = @"SocketIOException";
         _ackCount = 0;
         _acks = [[NSMutableDictionary alloc] init];
         _returnAllDataFromAck = NO;
+        _useSocket = YES;
     }
     return self;
 }
@@ -668,7 +669,8 @@ NSString* const SocketIOException = @"SocketIOException";
         _transport.delegate = nil;
         [_transport close];
     }
-    
+    if ([_transport isKindOfClass:NSClassFromString(@"SocketIOTransportWebsocket")] && wasConnecting && !wasConnected)
+        _useSocket = NO;
     if ((wasConnected || wasConnecting)) {
         if ([_delegate respondsToSelector:@selector(socketIODidDisconnect:disconnectedWithError:)]) {
             [_delegate socketIODidDisconnect:self disconnectedWithError:error];
@@ -792,13 +794,14 @@ NSString* const SocketIOException = @"SocketIOException";
             xhrTransportClass = NSClassFromString(@"SocketIOTransportXHR");
         }
         
-        if (webSocketTransportClass != nil && [transports indexOfObject:@"websocket"] != NSNotFound) {
+        if (webSocketTransportClass != nil && [transports indexOfObject:@"websocket"] != NSNotFound && _useSocket) {
             DEBUGLOG(@"websocket supported -> using it now");
             _transport = [[webSocketTransportClass alloc] initWithDelegate:self];
         }
         else if (xhrTransportClass != nil && [transports indexOfObject:@"xhr-polling"] != NSNotFound) {
             DEBUGLOG(@"xhr polling supported -> using it now");
             _transport = [[xhrTransportClass alloc] initWithDelegate:self];
+            _useSocket = YES;
         }
         else {
             DEBUGLOG(@"no transport found that is supported :( -> fail");
