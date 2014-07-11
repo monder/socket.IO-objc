@@ -306,6 +306,11 @@ NSString* const SocketIOException = @"SocketIOException";
 {
     if (![self isConnected] && ![self isConnecting]) {
         DEBUGLOG(@"Already disconnected!");
+        SocketIOCallback callbackFunction = _acks[packet.pId][@"callback"];
+        if (callbackFunction) {
+            callbackFunction(nil);
+            [self removeAcknowledgeForKey:packet.pId];
+        }
         return;
     }
     DEBUGLOG(@"send()");
